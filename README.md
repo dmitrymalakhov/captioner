@@ -1,8 +1,10 @@
 # LoRA Caption Studio
 
-Локальное веб-приложение для разметки изображений под Stable Diffusion LoRA. Бэкенд подключается к LM Studio по OpenAI-compatible API, отправляет изображения в vision-модель, сохраняет подписи и собирает ZIP-архив с LoRA-ready датасетом.
+[Russian README](README_ru.md)
 
-## Что получается в ZIP
+A local web application for captioning images for Stable Diffusion LoRA training. The backend connects to LM Studio through its OpenAI-compatible API, sends images to a vision model, saves captions, and builds a ZIP archive with a LoRA-ready dataset.
+
+## ZIP Output
 
 ```text
 lora-dataset/
@@ -21,27 +23,27 @@ lora-dataset/
       0002_image.txt
 ```
 
-У каждой картинки рядом лежит `.txt` с тем же basename. Для Kohya folder mode указывайте папку `lora-dataset/train`. Для dataset config mode используйте `dataset.toml` из архива.
+Each image has a matching `.txt` file with the same basename. For Kohya folder mode, point the trainer to `lora-dataset/train`. For dataset config mode, use `dataset.toml` from the archive.
 
-Подробная инструкция по подготовке датасета для `kohya_ss`, структуре папок, trigger phrase, repeats и captions лежит в [docs/kohya_ss_dataset_guide.md](docs/kohya_ss_dataset_guide.md).
+The detailed guide for preparing a `kohya_ss` dataset, folder layout, trigger phrase, repeats, and captions is in [docs/kohya_ss_dataset_guide.md](docs/kohya_ss_dataset_guide.md).
 
-## Запуск
+## Running
 
-1. Установите Node.js 20 или новее.
-2. В LM Studio загрузите vision-capable модель.
-3. В LM Studio включите локальный OpenAI-compatible server. Обычно адрес такой:
+1. Install Node.js 20 or newer.
+2. Load a vision-capable model in LM Studio.
+3. Enable the local OpenAI-compatible server in LM Studio. The usual address is:
 
 ```text
 http://127.0.0.1:1234/v1
 ```
 
-4. Запустите приложение:
+4. Start the app:
 
 ```bash
 npm start
 ```
 
-5. Откройте:
+5. Open:
 
 ```text
 http://127.0.0.1:5177
@@ -49,73 +51,71 @@ http://127.0.0.1:5177
 
 ## Workflow
 
-1. Нажмите `Проверить LM Studio`, чтобы приложение увидело модель из LM Studio.
-2. Выберите модель и тип LoRA: персонаж, стиль, предмет или общее.
-3. Укажите название LoRA. Приложение само подготовит trigger token, repeats и папку архива.
-4. Добавьте изображения: выберите файлы, перетащите их в окно или вставьте из буфера обмена.
-5. Нажмите `Разметить`.
-6. Проверьте подписи в карточках. При необходимости исправьте текст и нажмите `Сохранить правки`.
-7. Скачайте архив.
+1. Check the LM Studio connection so the app can see the model loaded in LM Studio.
+2. Select the model and LoRA type: character, style, object, or general.
+3. Enter the LoRA name. The app prepares the trigger token, repeats, and archive folder automatically.
+4. Add images by selecting files, dragging them into the window, or pasting from the clipboard.
+5. Start captioning.
+6. Review captions in the image cards. Edit text if needed and save the changes.
+7. Download the archive.
 
-После перезагрузки страницы последний готовый датасет можно открыть снова через панель `Последний датасет`.
+After a page reload, the latest completed dataset can be reopened from the latest dataset panel.
 
-По умолчанию интерфейс открыт в простом режиме. Кнопка `Расширенные настройки` показывает технические поля для опытных пользователей: адрес/API key LM Studio, class token, профиль caption, trigger token, repeats, имя ZIP-папки, temperature, max tokens, timeout, retries и дополнительный prompt.
+The UI opens in simple mode by default. The advanced settings button shows technical fields for experienced users: LM Studio API address/API key, class token, caption profile, trigger token, repeats, ZIP folder name, temperature, max tokens, timeout, retries, and additional prompt.
 
-`Бюджет генерации` в расширенных настройках - это не context window модели. Он задает, сколько output-токенов LM Studio может потратить на ответ через API. Для reasoning-моделей этот бюджет включает скрытые reasoning tokens, поэтому дефолт стоит 2048 даже для коротких captions.
+The generation budget in advanced settings is not the model context window. It controls how many output tokens LM Studio may spend on the API response. For reasoning models, this budget includes hidden reasoning tokens, so the default is 2048 even for short captions.
 
-## Логика caption для LoRA
+## LoRA Caption Logic
 
-Caption prompt уже настроен под подготовку LoRA-датасетов:
+The caption prompt is already tuned for LoRA dataset preparation:
 
-- первый comma-separated tag всегда содержит trigger phrase, например `sks_person person`;
-- `dataset.toml` использует `shuffle_caption = true`, `keep_tokens = 1` и `caption_extension = ".txt"`, поэтому trigger остается закрепленным при shuffle captions;
-- модель получает профильную стратегию для `Персонаж`, `Стиль`, `Предмет` или `Общее`;
-- captions описывают только видимые training-relevant детали: позу, ракурс, одежду, материалы, цвета, фон, свет, medium/style и композицию;
-- дефолтный caption целится примерно в 16-24 полезных тега, без длинной простыни повторов;
-- для character LoRA trigger используется как якорь личности, а изменяемые детали описываются, чтобы они не запекались в концепт;
-- для style LoRA описываются и содержимое кадра, и стиль, чтобы стиль не привязался к одному объекту;
-- для product/object LoRA описываются форма, материал, цвет, угол, окружение и свет;
-- из ответа модели автоматически вычищаются низкоценные booster-теги вроде `masterpiece`, `best quality`, `8k`, `highres`, `watermark`;
-- backend дополнительно сжимает near-duplicate теги по группам: одежда, обувь, сумки, фон, архитектура, свет, depth-of-field и стиль съемки;
-- дополнительный промпт в интерфейсе может уточнять словарь, но базовый формат `trigger, tag, tag...` сохраняется.
+- the first comma-separated tag always contains the trigger phrase, for example `sks_person person`;
+- `dataset.toml` uses `shuffle_caption = true`, `keep_tokens = 1`, and `caption_extension = ".txt"`, so the trigger remains fixed during caption shuffling;
+- the model receives a profile-specific strategy for `Character`, `Style`, `Object`, or `General`;
+- captions describe only visible training-relevant details: pose, view, clothing, materials, colors, background, lighting, medium/style, and composition;
+- the default caption targets roughly 16-24 useful tags without a long list of repeated ideas;
+- for character LoRA, the trigger is used as the identity anchor, while changeable details are captioned so they do not get baked into the concept;
+- for style LoRA, both image content and style are captioned so the style does not bind to a single subject;
+- for product/object LoRA, captions describe shape, material, color, angle, environment, and lighting;
+- low-value booster tags such as `masterpiece`, `best quality`, `8k`, `highres`, and `watermark` are automatically removed from model responses;
+- the backend also compacts near-duplicate tags by groups such as clothing, footwear, bags, background, architecture, lighting, depth of field, and photo style;
+- the additional prompt in the UI can refine vocabulary, but the base `trigger, tag, tag...` format is preserved.
 
-## Как готовить хорошие описания
+## Writing Good Descriptions
 
-Хороший caption объясняет модели, что является концептом LoRA, а что является
-переменной деталью конкретной картинки. Пиши описание как набор проверяемых
-визуальных фактов, а не как красивый prompt для генерации.
+A good caption tells the model what belongs to the LoRA concept and what is a variable detail of the specific image. Write descriptions as verifiable visual facts, not as a pretty generation prompt.
 
-Практические правила:
+Practical rules:
 
-- один тег - одна основная визуальная мысль: `red leather jacket`, `three-quarter view`, `soft window light`;
-- переменные детали нужно подписывать явно, чтобы они не прилипали к trigger: одежда, выражение, поза, кадрирование, фон, свет, материал, цвет;
-- если деталь не очевидна, выбирай нейтральный видимый термин: `person`, `printed text`, `storefront`, `device`, `patterned fabric`;
-- не угадывай имена, бренды, точный OCR-текст, место, художника или скрытый контекст;
-- не смешивай синонимы и противоречия: лучше `tan oversized blazer`, чем `camel blazer, oversized jacket, coat`;
-- не добавляй отсутствующие признаки вроде `no logo`, `no background`, `not visible`;
-- не используй `maybe`, `probably`, `looks like`, `appears to be` - такие теги путают и локальную LLM, и обучаемую LoRA.
+- one tag should carry one main visual idea: `red leather jacket`, `three-quarter view`, `soft window light`;
+- variable details must be captioned explicitly so they do not stick to the trigger: clothing, expression, pose, crop, background, lighting, material, color;
+- if a detail is not obvious, choose a neutral visible term: `person`, `printed text`, `storefront`, `device`, `patterned fabric`;
+- do not guess names, brands, exact OCR text, location, artist, or hidden context;
+- do not mix synonyms and contradictions: prefer `tan oversized blazer` over `camel blazer, oversized jacket, coat`;
+- do not add absent details such as `no logo`, `no background`, or `not visible`;
+- do not use `maybe`, `probably`, `looks like`, or `appears to be`; these tags confuse both the local LLM and the LoRA being trained.
 
-Пример хорошего caption:
+Good caption example:
 
 ```text
 sks_person person, close-up portrait, looking at camera, red leather jacket, short dark hair, blurred city background, soft daylight, photo
 ```
 
-Плохой вариант:
+Bad caption example:
 
 ```text
 sks_person person, beautiful, best quality, maybe celebrity, looks like a brand jacket, no logo, ultra detailed
 ```
 
-## Надежность
+## Reliability
 
-- Jobs сохраняются на диск в `.captioner/jobs/` и completed-архивы доступны после перезапуска сервера.
-- Если сервер перезапустился во время обработки, уже готовые captions сохраняются, а незавершенные изображения помечаются ошибкой.
-- Обработка идет через одну глобальную очередь, чтобы несколько batch-задач не перегружали локальную LM Studio модель.
-- Временные ошибки LM Studio повторяются автоматически. Количество повторов задается в `Retries`.
-- Активную очередь можно отменить кнопкой `Отменить`; новые изображения после отмены не обрабатываются.
+- Jobs are saved to disk in `.captioner/jobs/`, and completed archives remain available after a server restart.
+- If the server restarts during processing, completed captions are preserved and unfinished images are marked with an error.
+- Processing runs through one global queue so multiple batch jobs do not overload the local LM Studio model.
+- Temporary LM Studio failures are retried automatically. The number of retries is controlled by `Retries`.
+- The active queue can be cancelled; new images are not processed after cancellation.
 
-## Настройки окружения
+## Environment Settings
 
 ```bash
 HOST=127.0.0.1 npm start
@@ -126,9 +126,9 @@ MAX_UPLOAD_MB=1200 npm start
 MAX_FILES=500 npm start
 ```
 
-Загруженные job-файлы и архивы хранятся локально в `.captioner/jobs/`. Эта папка добавлена в `.gitignore`.
+Uploaded job files and archives are stored locally in `.captioner/jobs/`. This folder is included in `.gitignore`.
 
-## Проверки
+## Checks
 
 ```bash
 npm test
