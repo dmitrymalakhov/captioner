@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LoRA Caption Studio</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell" id="appShell">
+      <aside class="control-panel">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">LC</div>
+          <div class="brand-copy">
+            <h1>LoRA Caption Studio</h1>
+            <p>Локальная разметка через LM Studio</p>
+          </div>
+        </div>
+
+        <button class="button secondary expert-mode-button" id="expertModeButton" type="button" aria-pressed="false">
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M4 21v-7" />
+            <path d="M4 10V3" />
+            <path d="M12 21v-9" />
+            <path d="M12 8V3" />
+            <path d="M20 21v-5" />
+            <path d="M20 12V3" />
+            <path d="M2 14h4" />
+            <path d="M10 8h4" />
+            <path d="M18 16h4" />
+          </svg>
+          <span id="expertModeLabel">Расширенные настройки</span>
+        </button>
+
+        <section class="settings-section">
+          <div class="section-heading">
+            <h2>Подключение</h2>
+            <span class="status-pill neutral" id="connectionPill">Не проверено</span>
+          </div>
+
+          <div class="inline-action">
+            <button class="button secondary" id="refreshModelsButton" type="button">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M20 11a8.1 8.1 0 0 0-14.2-4.7L4 8" />
+                <path d="M4 4v4h4" />
+                <path d="M4 13a8.1 8.1 0 0 0 14.2 4.7L20 16" />
+                <path d="M20 20v-4h-4" />
+              </svg>
+              Проверить LM Studio
+            </button>
+          </div>
+          <p class="connection-help" id="connectionHintText">Запустите Local Server в LM Studio. Список моделей загрузится автоматически.</p>
+
+          <label class="field">
+            <span>Модель</span>
+            <select id="modelSelect">
+              <option value="">Список не загружен</option>
+            </select>
+          </label>
+
+          <details class="advanced-settings" data-expert-only>
+            <summary>Адрес API</summary>
+            <label class="field">
+              <span>LM Studio API</span>
+              <input id="baseUrlInput" type="url" value="http://127.0.0.1:1234/v1" autocomplete="off" />
+            </label>
+
+            <label class="field">
+              <span>Ключ API</span>
+              <input id="apiKeyInput" type="password" placeholder="обычно не нужен" autocomplete="off" />
+            </label>
+          </details>
+        </section>
+
+        <section class="settings-section">
+          <div class="section-heading">
+            <h2>Датасет</h2>
+          </div>
+
+          <div class="preset-strip" id="presetStrip" role="group" aria-label="LoRA type">
+            <button class="preset-button active" type="button" data-preset="character">Персонаж</button>
+            <button class="preset-button" type="button" data-preset="style">Стиль</button>
+            <button class="preset-button" type="button" data-preset="product">Предмет</button>
+            <button class="preset-button" type="button" data-preset="general">Общее</button>
+          </div>
+
+          <label class="field">
+            <span>Название LoRA</span>
+            <input id="subjectNameInput" type="text" placeholder="anna_portrait / neon_style" autocomplete="off" />
+          </label>
+
+          <div class="field-grid" data-expert-only>
+            <label class="field">
+              <span>Класс</span>
+              <input id="classTokenInput" type="text" value="person" placeholder="person" autocomplete="off" />
+            </label>
+
+            <label class="field">
+              <span>Профиль подписи</span>
+              <select id="captionModeSelect">
+                <option value="character">Персонаж</option>
+                <option value="style">Стиль</option>
+                <option value="product">Предмет</option>
+                <option value="balanced">Универсальный</option>
+              </select>
+            </label>
+          </div>
+
+          <details class="advanced-settings" data-expert-only>
+            <summary>Параметры архива</summary>
+            <div class="field-grid">
+              <label class="field">
+                <span>Токен запуска</span>
+                <input id="triggerTokenInput" type="text" placeholder="sks_person" autocomplete="off" />
+              </label>
+
+              <label class="field">
+                <span>Repeats</span>
+                <input id="repeatsInput" type="number" min="1" max="200" value="10" />
+              </label>
+            </div>
+
+            <label class="field">
+              <span>Папка ZIP</span>
+              <input id="folderNameInput" type="text" value="lora-dataset" autocomplete="off" />
+            </label>
+          </details>
+        </section>
+
+        <section class="settings-section" data-expert-only>
+          <div class="section-heading">
+            <h2>Генерация</h2>
+          </div>
+
+          <details class="advanced-settings">
+            <summary>Тонкая настройка</summary>
+            <label class="field">
+              <span>Креативность <output id="temperatureValue">0.35</output></span>
+              <input id="temperatureInput" type="range" min="0" max="1.2" step="0.05" value="0.35" />
+            </label>
+
+            <div class="field-grid">
+              <label class="field">
+                <span>Бюджет генерации</span>
+                <input id="maxTokensInput" type="number" min="2048" max="8192" value="2048" />
+              </label>
+
+              <label class="field">
+                <span>Таймаут, сек</span>
+                <input id="timeoutInput" type="number" min="15" max="900" value="180" />
+              </label>
+            </div>
+
+            <label class="field">
+              <span>Повторы</span>
+              <input id="retryCountInput" type="number" min="0" max="5" value="1" />
+            </label>
+
+            <label class="field">
+              <span>Дополнительный промпт</span>
+              <textarea
+                id="customPromptInput"
+                rows="5"
+                spellcheck="false"
+                placeholder="Необязательно: уточните словарь видимых признаков, например “короткие danbooru-like tags, фокус на одежде и позе, не угадывать бренд”"
+              ></textarea>
+              <small class="field-help">Не пишите сюда prompt для красивой генерации. Лучше задавать конкретные видимые акценты и запреты на догадки.</small>
+            </label>
+          </details>
+        </section>
+      </aside>
+
+      <main class="workspace">
+        <header class="workspace-header">
+          <div class="title-block">
+            <p>Локальная очередь</p>
+            <h2>Датасет для Stable Diffusion LoRA</h2>
+          </div>
+
+          <div class="toolbar">
+            <button class="button secondary" id="saveCaptionsButton" type="button" hidden disabled>
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                <path d="M17 21v-8H7v8" />
+                <path d="M7 3v5h8" />
+              </svg>
+              Сохранить правки
+            </button>
+            <button class="button danger" id="cancelButton" type="button" hidden>
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
+              Отменить
+            </button>
+            <button class="button secondary" id="clearButton" type="button">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M3 6h18" />
+                <path d="M8 6V4h8v2" />
+                <path d="M6 6l1 14h10l1-14" />
+                <path d="M10 11v5" />
+                <path d="M14 11v5" />
+              </svg>
+              Новый датасет
+            </button>
+            <a class="button secondary disabled" id="downloadButton" href="#" aria-disabled="true">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M12 3v12" />
+                <path d="m7 10 5 5 5-5" />
+                <path d="M5 21h14" />
+              </svg>
+              Скачать архив
+            </a>
+            <button class="button primary" id="startButton" type="button" disabled>
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              <span id="startLabel">Разметить</span>
+            </button>
+          </div>
+        </header>
+
+        <section class="readiness-panel" id="readinessPanel" aria-live="polite">
+          <div class="readiness-item" data-ready-key="model">
+            <span class="ready-dot"></span>
+            <div>
+              <strong>Модель</strong>
+              <small id="modelReadyText">Не выбрана</small>
+            </div>
+          </div>
+          <div class="readiness-item" data-ready-key="dataset">
+            <span class="ready-dot"></span>
+            <div>
+              <strong>LoRA</strong>
+              <small id="datasetReadyText">Персонаж</small>
+            </div>
+          </div>
+          <div class="readiness-item" data-ready-key="files">
+            <span class="ready-dot"></span>
+            <div>
+              <strong>Файлы</strong>
+              <small id="filesReadyText">Нет изображений</small>
+            </div>
+          </div>
+          <div class="readiness-item" data-ready-key="archive">
+            <span class="ready-dot"></span>
+            <div>
+              <strong>Архив</strong>
+              <small id="archiveReadyText">Ожидает разметку</small>
+            </div>
+          </div>
+        </section>
+
+        <section class="progress-panel" aria-live="polite">
+          <div class="progress-copy">
+            <strong id="statusLine">Файлы не выбраны</strong>
+            <span id="statusDetail">Готово к загрузке изображений</span>
+          </div>
+          <div class="meter" aria-hidden="true">
+            <span id="progressBar"></span>
+          </div>
+          <div class="metrics">
+            <div>
+              <span id="totalMetric">0</span>
+              <small>всего</small>
+            </div>
+            <div>
+              <span id="doneMetric">0</span>
+              <small>готово</small>
+            </div>
+            <div>
+              <span id="errorMetric">0</span>
+              <small>ошибки</small>
+            </div>
+          </div>
+        </section>
+
+        <section class="recent-panel" id="recentJobPanel" hidden>
+          <div>
+            <small>Последний датасет</small>
+            <strong id="recentJobTitle">Готовый архив</strong>
+            <span id="recentJobDetail">Можно открыть и скачать повторно</span>
+          </div>
+          <button class="button secondary" id="openRecentJobButton" type="button">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M3 7h6l2 2h10v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <path d="M3 7V5a2 2 0 0 1 2-2h4l2 2h4" />
+            </svg>
+            Открыть
+          </button>
+        </section>
+
+        <section class="dataset-summary" id="datasetSummary" hidden>
+          <div>
+            <small>Kohya / SD trainer</small>
+            <strong id="trainerPathText">lora-dataset/train</strong>
+          </div>
+          <div>
+            <small>Файлы в ZIP</small>
+            <strong id="zipPathText">10_sks_person-person/image.jpg + image.txt</strong>
+          </div>
+          <div>
+            <small>Конфиги</small>
+            <strong id="captionFormatText">.txt рядом с изображением</strong>
+          </div>
+        </section>
+
+        <section class="dropzone" id="dropzone">
+          <input id="fileInput" type="file" accept="image/*" multiple hidden />
+          <div class="drop-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 5v10" />
+              <path d="m8 9 4-4 4 4" />
+              <path d="M5 19h14" />
+            </svg>
+          </div>
+          <div class="drop-copy">
+            <strong>Перетащите изображения</strong>
+            <span id="fileHintText">JPG, PNG, WebP, GIF, BMP, TIFF</span>
+          </div>
+          <button class="button secondary" id="selectFilesButton" type="button">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M4 6h16" />
+              <path d="M4 12h16" />
+              <path d="M4 18h16" />
+            </svg>
+            Выбрать
+          </button>
+        </section>
+
+        <section class="queue-section">
+          <div class="queue-heading">
+            <h3>Очередь</h3>
+            <span id="queueSubtitle">Нет файлов</span>
+          </div>
+          <div class="image-grid" id="gallery"></div>
+          <div class="empty-state" id="emptyState">
+            <div class="empty-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M4 5h16v14H4z" />
+                <path d="m4 15 4-4 4 4 3-3 5 5" />
+                <path d="M15 9h.01" />
+              </svg>
+            </div>
+            <strong>Добавьте изображения для разметки</strong>
+            <button class="button secondary" id="emptySelectButton" type="button">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M4 6h16" />
+                <path d="M4 12h16" />
+                <path d="M4 18h16" />
+              </svg>
+              Выбрать файлы
+            </button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
