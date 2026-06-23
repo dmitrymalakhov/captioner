@@ -4,6 +4,11 @@ const IMAGE_EXTENSIONS = /\.(jpe?g|png|webp|gif|bmp|tiff?)$/i;
 const VISION_MODEL_HINT = /(vision|visual|vl\b|qwen.*vl|llava|bakllava|moondream|pixtral|internvl|minicpm.*v|cogvlm|molmo|ovis|paligemma|gemma.*vision|multimodal|mmproj)/i;
 
 const PRESETS = {
+  face: {
+    classToken: "person",
+    captionMode: "face",
+    repeats: 10
+  },
   character: {
     classToken: "person",
     captionMode: "character",

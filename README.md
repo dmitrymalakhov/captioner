@@ -52,7 +52,7 @@ http://127.0.0.1:5177
 ## Workflow
 
 1. Check the LM Studio connection so the app can see the model loaded in LM Studio.
-2. Select the model and LoRA type: character, style, object, or general.
+2. Select the model and LoRA type: face, character, style, object, or general.
 3. Enter the LoRA name. The app prepares the trigger token, repeats, and archive folder automatically.
 4. Add images by selecting files, dragging them into the window, or pasting from the clipboard.
 5. Start captioning.
@@ -71,10 +71,11 @@ The caption prompt is already tuned for LoRA dataset preparation:
 
 - the first comma-separated tag always contains the trigger phrase, for example `sks_person person`;
 - `dataset.toml` uses `shuffle_caption = true`, `keep_tokens = 1`, and `caption_extension = ".txt"`, so the trigger remains fixed during caption shuffling;
-- the model receives a profile-specific strategy for `Character`, `Style`, `Object`, or `General`;
+- the model receives a profile-specific strategy for `Face`, `Character`, `Style`, `Object`, or `General`;
 - captions describe only visible training-relevant details: pose, view, clothing, materials, colors, background, lighting, medium/style, and composition;
 - the default caption targets roughly 16-24 useful tags without a long list of repeated ideas;
 - for character LoRA, the trigger is used as the identity anchor, while changeable details are captioned so they do not get baked into the concept;
+- for face/portrait LoRA, captions focus more strongly on portrait framing, face angle, gaze, expression, hair around the face, glasses, facial hair, makeup, occlusion, and lighting on the face;
 - for style LoRA, both image content and style are captioned so the style does not bind to a single subject;
 - for product/object LoRA, captions describe shape, material, color, angle, environment, and lighting;
 - low-value booster tags such as `masterpiece`, `best quality`, `8k`, `highres`, and `watermark` are automatically removed from model responses;

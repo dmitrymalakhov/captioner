@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import { DEFAULT_LMSTUDIO_BASE_URL, clampNumber, httpError } from "./utils.js";
 
-export const CAPTION_PROMPT_VERSION = "lora-caption-v5";
+export const CAPTION_PROMPT_VERSION = "lora-caption-v6";
 
 const SYSTEM_CAPTION_PROMPT = [
   "You are a local vision-language model used as a deterministic Stable Diffusion LoRA training caption writer.",
@@ -47,6 +47,16 @@ const CAPTION_MODES = new Map([
       label: "Character / person LoRA",
       strategy:
         "Trigger is the identity anchor. Caption changeable traits: outfit, accessories, pose, expression, crop, camera angle, lighting, background, visible hair and framing. Do not name real people."
+    }
+  ],
+  [
+    "face",
+    {
+      label: "Face / portrait LoRA",
+      outputShape:
+        "portrait framing, face angle or view, gaze direction, expression, visible hair or facial hair, glasses/makeup/occlusion if present, lighting on face, background or photo style",
+      strategy:
+        "Trigger is the identity anchor for face-focused training. Prioritize face visibility, portrait framing, head angle, gaze, expression, hair around the face, facial hair, glasses, makeup, face occlusion, and lighting on the face. Include outfit and background only when visible and useful. Do not guess identity, age, or ethnicity."
     }
   ],
   [
@@ -113,6 +123,7 @@ const LOW_VALUE_TAGS = new Set([
 const CAPTION_TAG_LIMITS = {
   balanced: 24,
   character: 24,
+  face: 24,
   style: 28,
   product: 24
 };
@@ -298,9 +309,12 @@ export function buildCaptionPrompt(settings) {
   const triggerInstruction = trigger
     ? `First tag requirement: start with exactly "${trigger}", then a comma. Do not add any word before it or inside that first tag.`
     : "Do not invent a trigger token.";
+  const outputShape =
+    mode.outputShape ||
+    "subject detail, pose or view, clothing/material/color, background, lighting, style or medium";
   const formatExample = trigger
-    ? `Output shape: ${trigger}, subject detail, pose or view, clothing/material/color, background, lighting, style or medium`
-    : "Output shape: subject detail, pose or view, clothing/material/color, background, lighting, style or medium";
+    ? `Output shape: ${trigger}, ${outputShape}`
+    : `Output shape: ${outputShape}`;
   const custom = settings.customPrompt
     ? `Additional project instruction from the user: ${settings.customPrompt}`
     : "";

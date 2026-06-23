@@ -116,7 +116,7 @@ test("builds a LoRA-aware caption prompt", () => {
   const systemPrompt = buildCaptionSystemPrompt();
   const prompt = buildCaptionPrompt(settings);
 
-  assert.equal(settings.promptVersion, "lora-caption-v5");
+  assert.equal(settings.promptVersion, "lora-caption-v6");
   assert.match(systemPrompt, /Stable Diffusion LoRA training/);
   assert.match(systemPrompt, /local vision-language model/);
   assert.match(prompt, /keep_tokens = 1/);
@@ -125,6 +125,21 @@ test("builds a LoRA-aware caption prompt", () => {
   assert.match(prompt, /Silent workflow:/);
   assert.match(prompt, /Profile: Style LoRA/);
   assert.match(prompt, /prefer concise tags/);
+});
+
+test("builds a face-focused caption prompt", () => {
+  const settings = normalizeCaptionSettings({
+    triggerToken: "sks_dima",
+    classToken: "person",
+    captionMode: "face"
+  });
+  const prompt = buildCaptionPrompt(settings);
+
+  assert.equal(settings.captionMode, "face");
+  assert.match(prompt, /Profile: Face \/ portrait LoRA/);
+  assert.match(prompt, /portrait framing, face angle or view, gaze direction, expression/);
+  assert.match(prompt, /lighting on the face/);
+  assert.match(prompt, /First tag requirement: start with exactly "sks_dima person"/);
 });
 
 test("normalizes retry count for transient LM Studio failures", () => {
